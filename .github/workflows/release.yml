@@ -3,46 +3,79 @@ name: Release
 on:
   workflow_dispatch:
   push:
-    tags: [ "v*" ]
-    branches: [ main ]
+    tags: ["v*"]
+    branches: [main, updates]
 
 jobs:
-  docker-images:
-    name: Docker images
+  setup:
+    name: Generate build matrix
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set up Docker Buildx
-        uses: crazy-max/ghaction-docker-buildx@v1
-        with:
-          version: latest
-
-      - name: Login to GHCR
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set image registry and tag
+      - name: Check changed files
+        id: diff
         run: |
-          case "${GITHUB_REF}" in
-            refs/heads/main)
-              TAG="latest"
-              ;;
-            refs/tags/v*)
-              TAG=${GITHUB_REF/refs\/tags\//}
-              ;;
-            *)
-              TAG=${GITHUB_REF/refs\/*\//}
-              ;;
-          esac
-          echo "REGISTRY=ghcr.io/${{ github.repository_owner }}" >> $GITHUB_ENV
-          echo "VERSION=${TAG}" >> $GITHUB_ENV
-         
-      - name: Build and publish multi-arch images
+          # See https://github.community/t/check-pushed-file-changes-with-git-diff-tree-in-github-actions/17220/10
+          if [ $GITHUB_BASE_REF ]; then
+            # Pull Request
+            git fetch origin $GITHUB_BASE_REF --depth=1
+            export DIFF=$( git diff --name-only origin/$GITHUB_BASE_REF $GITHUB_SHA )
+            echo "Diff between origin/$GITHUB_BASE_REF and $GITHUB_SHA"
+          else
+            # Push
+            git fetch origin ${{ github.event.before }} --depth=1
+            export DIFF=$( git diff --name-only ${{ github.event.before }} $GITHUB_SHA )
+            echo "Diff between ${{ github.event.before }} and $GITHUB_SHA"
+          fi
+          echo "$DIFF"
+          # Escape newlines (replace \n with %0A)
+          echo "::set-output name=diff::$( echo "$DIFF" | sed ':a;N;$!ba;s/\n/%0A/g' )"
+      - name: Set matrix for build
+        id: set-matrix
         run: |
-          make docker-release
-        working-directory: images
+          DIFF="${{ steps.diff.outputs.diff }}"
+          echo $DIFF
+
+  # docker-images:
+  #   name: Docker images
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v2
+
+  #     - name: Set up Docker Buildx
+  #       uses: crazy-max/ghaction-docker-buildx@v1
+  #       with:
+  #         version: latest
+
+  #     - name: Login to GHCR
+  #       uses: docker/login-action@v1
+  #       with:
+  #         registry: ghcr.io
+  #         username: ${{ github.repository_owner }}
+  #         password: ${{ secrets.GITHUB_TOKEN }}
+
+  #     - name: Set image registry and tag
+  #       run: |
+  #         case "${GITHUB_REF}" in
+  #           refs/heads/main)
+  #             TAG="latest"
+  #             ;;
+  #           refs/tags/v*)
+  #             TAG=${GITHUB_REF/refs\/tags\//}
+  #             ;;
+  #           *)
+  #             TAG=${GITHUB_REF/refs\/*\//}
+  #             ;;
+  #         esac
+  #         echo "REGISTRY=ghcr.io/${{ github.repository_owner }}" >> $GITHUB_ENV
+  #         echo "VERSION=${TAG}" >> $GITHUB_ENV
+
+  #     - name: Build and publish multi-arch images
+  #       run: |
+  #         make docker-release
+  #       working-directory: images
