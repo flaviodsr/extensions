@@ -1,12 +1,12 @@
 name: mlflow
 product: mlflow
-version: "1.19.0"
+version: "1.20.2"
 description: |
   MLFlow is an open source platform specialized in tracking ML experiments, and packaging and deploying ML models.
 namespace: mlflow
 install:
   - type: helm
-    location: https://github.com/fuseml/extensions/raw/main/charts/mlflow-0.0.1.tgz
+    location: https://github.com/flaviodsr/extensions/raw/main/charts/mlflow-0.0.1.tgz
     values:
 uninstall:
   - type: helm

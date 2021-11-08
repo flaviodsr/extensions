@@ -39,7 +39,7 @@ workers: 4
 image:
   pullSecrets:
   pullPolicy: Always
-  repository: ghcr.io/fuseml/mlflow
+  repository: ghcr.io/flaviodsr/mlflow
   tag:
 
 serviceAccount:
@@ -48,7 +48,7 @@ serviceAccount:
   name:
 
 podSecurityContext: {}
-securityContext: {}  
+securityContext: {}
 
 prometheus:
   expose: true
@@ -68,7 +68,6 @@ postgresql:
       postgresqlPassword: mlflowdbpwd
   persistence:
     size: 2Gi
-
 
 mysql:
   enabled: false
