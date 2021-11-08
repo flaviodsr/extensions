@@ -9,6 +9,6 @@ install:
     repo: https://charts.jetstack.io
     chart: cert-manager
     values: values.yaml
-    version: "v1.5.4"
+    version: "v1.6.1"
 uninstall:
   - type: helm
